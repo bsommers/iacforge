@@ -11,3 +11,5 @@ build/
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
+.tracker/
+out/

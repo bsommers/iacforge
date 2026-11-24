@@ -148,7 +148,7 @@ def doctor(which=shutil.which) -> dict[str, Any]:
 
 def render(spec: Any, engine: str | None = None, workdir: str | Path | None = None,
            runner: Runner | None = None) -> dict[str, Any]:
-    stack, b = _bind(spec, engine)
+    _, b = _bind(spec, engine)
     wd = resolve_workdir(spec, b.stack, workdir)
     eng = get_engine(b.engine, runner=runner)
     res = eng.render(b, wd)
@@ -157,7 +157,7 @@ def render(spec: Any, engine: str | None = None, workdir: str | Path | None = No
 
 def plan(spec: Any, engine: str | None = None, workdir: str | Path | None = None,
          runner: Runner | None = None) -> dict[str, Any]:
-    stack, b = _bind(spec, engine)
+    _, b = _bind(spec, engine)
     wd = resolve_workdir(spec, b.stack, workdir)
     eng = get_engine(b.engine, runner=runner)
     return {**_envelope_base(b, wd), **eng.plan(b, wd)}
@@ -165,7 +165,7 @@ def plan(spec: Any, engine: str | None = None, workdir: str | Path | None = None
 
 def outputs(spec: Any, engine: str | None = None, workdir: str | Path | None = None,
             runner: Runner | None = None) -> dict[str, Any]:
-    stack, b = _bind(spec, engine)
+    _, b = _bind(spec, engine)
     wd = resolve_workdir(spec, b.stack, workdir)
     eng = get_engine(b.engine, runner=runner)
     return {**_envelope_base(b, wd), **eng.outputs(b, wd)}
@@ -184,7 +184,7 @@ def _gate(op: str, confirm: bool, b: BoundStack) -> None:
 
 def apply(spec: Any, engine: str | None = None, workdir: str | Path | None = None,
           confirm: bool = False, runner: Runner | None = None) -> dict[str, Any]:
-    stack, b = _bind(spec, engine)
+    _, b = _bind(spec, engine)
     _gate("apply", confirm, b)
     wd = resolve_workdir(spec, b.stack, workdir)
     eng = get_engine(b.engine, runner=runner)
@@ -193,7 +193,7 @@ def apply(spec: Any, engine: str | None = None, workdir: str | Path | None = Non
 
 def destroy(spec: Any, engine: str | None = None, workdir: str | Path | None = None,
             confirm: bool = False, runner: Runner | None = None) -> dict[str, Any]:
-    stack, b = _bind(spec, engine)
+    _, b = _bind(spec, engine)
     _gate("destroy", confirm, b)
     wd = resolve_workdir(spec, b.stack, workdir)
     eng = get_engine(b.engine, runner=runner)

@@ -65,10 +65,10 @@ def output_key(resource_name: str, key: str) -> str:
 class TfResult:
     """What an adapter returns for one stack resource under the Terraform engine.
 
-    ``body``     – attributes of the primary ``resource "<tf_type>" "<tf_id>"`` block.
-    ``extra``    – additional resource blocks: {tf_type: {block_name: body}}.
-    ``data``     – data source blocks: {data_type: {block_name: body}}.
-    ``outputs``  – {key: terraform expression string, e.g. "${docker_container.web.id}"}.
+    ``body``     - attributes of the primary ``resource "<tf_type>" "<tf_id>"`` block.
+    ``extra``    - additional resource blocks: {tf_type: {block_name: body}}.
+    ``data``     - data source blocks: {data_type: {block_name: body}}.
+    ``outputs``  - {key: terraform expression string, e.g. "${docker_container.web.id}"}.
     """
 
     body: dict[str, Any]
@@ -79,9 +79,9 @@ class TfResult:
 
 @dataclass
 class TfContext:
-    stack: "StackSpec"
+    stack: StackSpec
     config: BaseModel
-    adapter: "ProviderAdapter"
+    adapter: ProviderAdapter
 
     def address(self, resource_name: str) -> str:
         """Primary Terraform address of another stack resource, e.g. 'docker_network.net'."""
@@ -101,7 +101,7 @@ class PulumiResult:
 
 @dataclass
 class PulumiContext:
-    stack: "StackSpec"
+    stack: StackSpec
     config: BaseModel
     provider: Any = None  # pulumi.ProviderResource or None
     resources: dict[str, Any] = field(default_factory=dict)  # stack name -> pulumi.Resource
@@ -128,13 +128,13 @@ class ProviderAdapter:
     docs_url: ClassVar[str] = ""
 
     # ---- validation ----
-    def references(self, res: "Resource", props: Props) -> list[str]:
+    def references(self, res: Resource, props: Props) -> list[str]:
         """Stack resource names this resource refers to inside its properties.
 
         Treated as implicit dependsOn entries (ordering + existence checks)."""
         return []
 
-    def validate_stack(self, stack: "StackSpec", config: Props, props: dict[str, Props]) -> list[str]:
+    def validate_stack(self, stack: StackSpec, config: Props, props: dict[str, Props]) -> list[str]:
         """Cross-resource checks beyond the pydantic models. Return error strings."""
         return []
 
@@ -143,15 +143,15 @@ class ProviderAdapter:
         """`provider` block(s), e.g. {"docker": {"host": "unix:///var/run/docker.sock"}}."""
         return {}
 
-    def tf_resource(self, res: "Resource", props: Props, ctx: TfContext) -> TfResult:
+    def tf_resource(self, res: Resource, props: Props, ctx: TfContext) -> TfResult:
         raise NotImplementedError(f"{self.name}: terraform rendering not implemented")
 
     # ---- pulumi engine ----
-    def pulumi_provider(self, config: Props, stack: "StackSpec") -> Any:
+    def pulumi_provider(self, config: Props, stack: StackSpec) -> Any:
         """Explicit pulumi provider instance, or None to use ambient configuration."""
         return None
 
-    def pulumi_resource(self, res: "Resource", props: Props, ctx: PulumiContext) -> PulumiResult:
+    def pulumi_resource(self, res: Resource, props: Props, ctx: PulumiContext) -> PulumiResult:
         raise NotImplementedError(f"{self.name}: pulumi program not implemented")
 
     # ---- introspection helpers ----

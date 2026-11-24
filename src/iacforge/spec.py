@@ -59,7 +59,7 @@ class StackBody(_Model):
     resources: list[Resource] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _check_refs(self) -> "StackBody":
+    def _check_refs(self) -> StackBody:
         names = [r.name for r in self.resources]
         dupes = sorted({n for n in names if names.count(n) > 1})
         if dupes:
@@ -104,11 +104,11 @@ def topo_order(resources: list[Resource]) -> list[Resource]:
         if s == 2:
             return
         if s == 1:
-            raise ValueError("dependency cycle: " + " -> ".join(path + [name]))
+            raise ValueError("dependency cycle: " + " -> ".join([*path, name]))
         state[name] = 1
         for dep in sorted(by_name[name].depends_on, key=lambda d: index.get(d, 0)):
             if dep in by_name:
-                visit(dep, path + [name])
+                visit(dep, [*path, name])
         state[name] = 2
         done.append(by_name[name])
 

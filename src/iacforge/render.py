@@ -15,9 +15,9 @@ from .adapters import get_adapter
 from .adapters.base import (
     PULUMI,
     TF,
-    PulumiContext,
     Props,
     ProviderAdapter,
+    PulumiContext,
     TfContext,
     output_key,
     tf_id,

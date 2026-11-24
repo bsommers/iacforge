@@ -30,6 +30,7 @@ packages = ["src/iacforge"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
+  "docker: needs a running Docker daemon",
   "tofu: needs the tofu or terraform binary and network access to download providers",
   "pulumi: needs the pulumi CLI",
 ]
@@ -37,3 +38,12 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "RUF"]
+# RUF012: adapter class attributes are declared ClassVar on the base class.
+# E501: long JSON-ish literals are clearer unwrapped; formatter-free project.
+ignore = ["RUF012", "E501", "UP031"]  # UP031: %-format keeps "${...}" TF interpolations readable
+
+[tool.ruff.lint.per-file-ignores]
+"src/iacforge/adapters/*.py" = ["E731"]  # tiny local interpolation helpers
