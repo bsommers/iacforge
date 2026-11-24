@@ -18,5 +18,5 @@ State:
 
 Dead ends: Pulumi CLI install (curl|sh) denied by permission classifier; pulumi live tests skip.
 
-Next: done — final commit pushed; verify CI green.
+Next: v0.1 shipped (fe959d5, CI green). Tracker shows all 12 agents done. Next milestone: GCP first-class (docs/system/gcp-plan.md).
 `gh run list` CI → mark tracker phases docs/ship done.
