@@ -51,7 +51,10 @@ def test_negatives(res):
         bind(parse_spec(stack([res])))
 
 
-def test_password_passthrough_optional():
-    ex = stack(copy.deepcopy(EXAMPLES[0]["spec"]["resources"]), {"user": "u", "password": "p", "useNtlm": False})
+def test_user_passthrough_and_password_rejected():
+    ex = stack(copy.deepcopy(EXAMPLES[0]["spec"]["resources"]), {"user": "u", "useNtlm": False})
     p = render_terraform(bind(parse_spec(ex), "opentofu"))["provider"]["hyperv"]
-    assert p["user"] == "u" and p["use_ntlm"] is False
+    assert p["user"] == "u" and p["use_ntlm"] is False and "password" not in p
+    bad = stack(copy.deepcopy(EXAMPLES[0]["spec"]["resources"]), {"password": "p"})
+    with pytest.raises(SpecError):
+        bind(parse_spec(bad))

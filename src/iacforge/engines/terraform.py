@@ -102,7 +102,8 @@ class TerraformEngine(Engine):
         digest = hashlib.sha256(main.read_bytes()).hexdigest()
         if lock.exists() and stamp.exists() and stamp.read_text().strip() == digest:
             return ""
-        r = self._run(exe, ["init", *COMMON], wd)
+        # -upgrade when a lock already exists: the config changed, possibly its provider pins.
+        r = self._run(exe, ["init", *COMMON, *(["-upgrade"] if lock.exists() else [])], wd)
         stamp.parent.mkdir(parents=True, exist_ok=True)
         stamp.write_text(digest)
         return r.stdout

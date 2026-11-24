@@ -1,0 +1,6 @@
+---
+description: iacforge repo rules
+alwaysApply: true
+---
+Read and follow `AGENTS.md` at the repo root (commands, architecture, invariants, pitfalls).
+To use iacforge for provisioning, see `docs/agents/using-iacforge.md`.

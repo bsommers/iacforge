@@ -1,0 +1,124 @@
+{
+  "$defs": {
+    "Metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Labels",
+          "type": "object"
+        },
+        "name": {
+          "description": "Stack name; also the state/workdir key.",
+          "pattern": "^[a-z][a-z0-9-]{0,62}$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Metadata",
+      "type": "object"
+    },
+    "Resource": {
+      "additionalProperties": false,
+      "properties": {
+        "dependsOn": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependson",
+          "type": "array"
+        },
+        "name": {
+          "description": "Unique within the stack.",
+          "pattern": "^[a-z][a-z0-9-]{0,62}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "properties": {
+          "additionalProperties": true,
+          "title": "Properties",
+          "type": "object"
+        },
+        "type": {
+          "description": "Resource type, e.g. container, vm, network, bucket, file.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "title": "Resource",
+      "type": "object"
+    },
+    "StackBody": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "default": "opentofu",
+          "enum": [
+            "opentofu",
+            "terraform",
+            "pulumi"
+          ],
+          "title": "Engine",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "providerConfig": {
+          "additionalProperties": true,
+          "title": "Providerconfig",
+          "type": "object"
+        },
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/Resource"
+          },
+          "title": "Resources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "title": "StackBody",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "const": "iacforge/v1",
+      "title": "Apiversion",
+      "type": "string"
+    },
+    "kind": {
+      "const": "Stack",
+      "title": "Kind",
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "#/$defs/Metadata"
+    },
+    "spec": {
+      "$ref": "#/$defs/StackBody"
+    }
+  },
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "title": "StackSpec",
+  "type": "object"
+}

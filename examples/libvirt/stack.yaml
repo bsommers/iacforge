@@ -1,0 +1,33 @@
+# KVM/QEMU VM on a NAT network. Linux host with libvirt; set sshAuthorizedKeys to your key.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: libvirt-demo
+spec:
+  provider: libvirt
+  resources:
+  - name: labpool
+    type: pool
+    properties:
+      path: /var/lib/libvirt/images/lab
+  - name: labnet
+    type: network
+    properties:
+      mode: nat
+      cidr: 192.168.150.0/24
+  - name: data
+    type: volume
+    properties:
+      poolRef: labpool
+      sizeGb: 5
+  - name: web
+    type: vm
+    properties:
+      image: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+      memoryMb: 2048
+      vcpu: 2
+      diskGb: 20
+      networkRef: labnet
+      poolRef: labpool
+      sshAuthorizedKeys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA-replace-with-your-public-key you@host

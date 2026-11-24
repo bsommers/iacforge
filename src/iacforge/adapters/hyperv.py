@@ -1,7 +1,7 @@
 """`hyperv` provider: Hyper-V VMs on a Windows host (taliesins/hyperv). Terraform/OpenTofu only.
 
-Credentials: never put the password in a spec. Leave ``password`` unset and export
-``HYPERV_PASSWORD`` (and ``HYPERV_USER``) instead. Switches/VHDs in the stack are referenced
+Credentials: the spec has no password field by design; export ``HYPERV_PASSWORD``
+(and optionally ``HYPERV_USER``), which the provider reads from the environment. Switches/VHDs in the stack are referenced
 explicitly via ``switchRef`` / ``vhdRef`` (implicit dependencies); plain ``switch`` names an
 existing Hyper-V switch.
 """
@@ -22,7 +22,6 @@ class HypervConfig(Props):
     https: bool = True
     insecure: bool = False
     user: str | None = Field(default=None, description="Falls back to env HYPERV_USER.")
-    password: str | None = Field(default=None, description="Prefer env HYPERV_PASSWORD; avoid putting secrets in specs.")
     use_ntlm: bool = Field(default=True, alias="useNtlm")
 
 
@@ -93,8 +92,6 @@ class HypervAdapter(ProviderAdapter):
              "insecure": config.insecure, "use_ntlm": config.use_ntlm}
         if config.user:
             b["user"] = config.user
-        if config.password:
-            b["password"] = config.password
         return {"hyperv": b}
 
     def tf_resource(self, res, props, ctx):

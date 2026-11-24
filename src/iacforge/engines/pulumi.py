@@ -108,7 +108,7 @@ class PulumiEngine(Engine):
     def _env(self, workdir: Path) -> dict[str, str]:
         return {
             "PULUMI_CONFIG_PASSPHRASE": os.environ.get("PULUMI_CONFIG_PASSPHRASE", ""),
-            "PULUMI_BACKEND_URL": f"file://{workdir / 'state'}",
+            "PULUMI_BACKEND_URL": f"file://{(workdir / 'state').as_posix()}",
             "PULUMI_SKIP_UPDATE_CHECK": "true",
             "PULUMI_AUTOMATION_API_SKIP_VERSION_CHECK": "true",
         }

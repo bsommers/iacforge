@@ -1,0 +1,15 @@
+# Writes a file. No daemon, no cloud. Needs only tofu/terraform.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: local-demo
+spec:
+  provider: local
+  resources:
+  - name: hello
+    type: file
+    properties:
+      path: out/hello.txt
+      content: 'hello from iacforge
+
+        '

@@ -118,7 +118,14 @@ def build_server():
     return server
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    import argparse
+
+    argparse.ArgumentParser(
+        prog="iacforge-mcp",
+        description="iacforge MCP server (stdio). Configure it in an MCP client, e.g. "
+        "`claude mcp add iacforge -- iacforge-mcp`. Tools: " + ", ".join(f.__name__ for f in TOOLS),
+    ).parse_args(argv)
     try:
         server = build_server()
     except RuntimeError as e:

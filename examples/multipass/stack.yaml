@@ -1,0 +1,16 @@
+# Ubuntu VM with cloud-init. Needs the multipass CLI.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: multipass-demo
+spec:
+  provider: multipass
+  resources:
+  - name: dev
+    type: vm
+    properties:
+      image: '24.04'
+      cpus: 2
+      memoryGb: 2
+      diskGb: 10
+      cloudInit: "#cloud-config\npackages:\n  - htop\n"

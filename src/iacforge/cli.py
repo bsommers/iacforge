@@ -30,7 +30,13 @@ def build_parser() -> argparse.ArgumentParser:
         description="Provision infrastructure from one provider-neutral spec via OpenTofu/Terraform or Pulumi.",
     )
     ap.add_argument("--json", action="store_true", help="machine-readable JSON envelope on stdout")
+    # --json is accepted before or after the subcommand ("iacforge --json plan" == "iacforge plan --json")
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--json", action="store_true", default=argparse.SUPPRESS,
+                        help="machine-readable JSON envelope on stdout")
     sub = ap.add_subparsers(dest="command", required=True, metavar="COMMAND")
+    _orig_add = sub.add_parser
+    sub.add_parser = lambda *a, **k: _orig_add(*a, parents=[common], **k)  # type: ignore[method-assign]
 
     sub.add_parser("version", help="print version, engines and providers")
 

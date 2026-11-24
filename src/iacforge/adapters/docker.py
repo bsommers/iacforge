@@ -38,9 +38,11 @@ from .base import (
 
 
 class RegistryAuth(Props):
+    """Registry credentials come from a docker config.json (default ~/.docker/config.json,
+    populated by `docker login`). Literal usernames/passwords are deliberately not accepted:
+    they would land in main.tf.json and state."""
+
     address: str = Field(description="Registry host, e.g. ghcr.io or registry-1.docker.io.")
-    username: str | None = None
-    password: str | None = None
     config_file: str | None = Field(default=None, alias="configFile",
                                     description="Path to a docker config.json holding credentials.")
 
@@ -177,10 +179,6 @@ class DockerAdapter(ProviderAdapter):
             auths = []
             for a in config.registry_auth:
                 d: dict[str, Any] = {"address": a.address}
-                if a.username is not None:
-                    d["username"] = a.username
-                if a.password is not None:
-                    d["password"] = a.password
                 if a.config_file is not None:
                     d["config_file"] = a.config_file
                 auths.append(d)
@@ -269,8 +267,7 @@ class DockerAdapter(ProviderAdapter):
         if config.registry_auth:
             kw["registry_auth"] = [
                 docker.ProviderRegistryAuthArgs(
-                    address=a.address, username=a.username, password=a.password,
-                    config_file=a.config_file)
+                    address=a.address, config_file=a.config_file)
                 for a in config.registry_auth
             ]
         return docker.Provider("docker", **kw)

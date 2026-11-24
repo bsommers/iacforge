@@ -1,0 +1,25 @@
+# Hyper-V VM + switch + VHD. Windows host, elevated; set HYPERV_USER/HYPERV_PASSWORD.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: hyperv-demo
+spec:
+  provider: hyperv
+  resources:
+  - name: labswitch
+    type: switch
+    properties:
+      type: Internal
+  - name: disk
+    type: vhd
+    properties:
+      path: C:\VMs\lab\disk.vhdx
+      sizeGb: 40
+  - name: lab1
+    type: vm
+    properties:
+      generation: 2
+      memoryMb: 2048
+      vcpu: 2
+      switchRef: labswitch
+      vhdRef: disk

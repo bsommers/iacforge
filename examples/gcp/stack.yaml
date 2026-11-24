@@ -1,0 +1,59 @@
+# GCP network, subnet, firewall, VM, service account, bucket. Set providerConfig.project; uses ADC.
+# bucket names are globally unique: change data-bucket-example-1.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: gcp-demo
+spec:
+  provider: gcp
+  providerConfig:
+    project: my-project
+    labels:
+      managed-by: iacforge
+  resources:
+  - name: sa
+    type: service_account
+    properties:
+      accountId: app-runner
+      displayName: App runner
+  - name: vpc
+    type: network
+    properties: {}
+  - name: subnet-a
+    type: subnet
+    properties:
+      network: vpc
+      cidr: 10.10.0.0/24
+  - name: allow-ssh
+    type: firewall
+    properties:
+      network: vpc
+      allow:
+      - protocol: tcp
+        ports:
+        - '22'
+      sourceRanges:
+      - 10.0.0.0/8
+      targetTags:
+      - ssh
+  - name: web
+    type: vm
+    properties:
+      subnet: subnet-a
+      publicIp: true
+      tags:
+      - ssh
+      serviceAccount: sa
+      startupScript: '#!/bin/sh
+
+        echo hi
+
+        '
+      metadata:
+        role: web
+      spot: true
+  - name: data-bucket-example-1
+    type: bucket
+    properties:
+      versioning: true
+      location: US

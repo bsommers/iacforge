@@ -68,10 +68,10 @@ def test_outputs():
 def test_provider_config():
     doc = tf([res("n", "network")], {
         "host": "npipe:////./pipe/docker_engine",
-        "registryAuth": [{"address": "ghcr.io", "username": "u", "password": "p"}]})
+        "registryAuth": [{"address": "ghcr.io", "configFile": "~/.docker/config.json"}]})
     assert doc["provider"]["docker"] == {
         "host": "npipe:////./pipe/docker_engine",
-        "registry_auth": [{"address": "ghcr.io", "username": "u", "password": "p"}]}
+        "registry_auth": [{"address": "ghcr.io", "config_file": "~/.docker/config.json"}]}
     doc = tf([res("n", "network")], {"host": "unix:///run/user/1000/podman/podman.sock"})
     assert doc["provider"]["docker"]["host"].endswith("podman.sock")
 
@@ -207,3 +207,13 @@ def test_live_apply_alpine(tmp_path):
         assert out["outputs"]["box"]["ip_address"]
     finally:
         eng.destroy(b, tmp_path)
+
+
+def test_registry_auth_rejects_literal_password():
+    import pytest
+    from pydantic import ValidationError
+
+    from iacforge.adapters.docker import RegistryAuth
+
+    with pytest.raises(ValidationError):
+        RegistryAuth.model_validate({"address": "ghcr.io", "password": "secret"})

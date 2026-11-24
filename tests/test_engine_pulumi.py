@@ -106,7 +106,7 @@ def test_passphrase_default(monkeypatch, tmp_path):
     monkeypatch.delenv("PULUMI_CONFIG_PASSPHRASE", raising=False)
     env = PulumiEngine()._env(tmp_path)
     assert env["PULUMI_CONFIG_PASSPHRASE"] == ""
-    assert env["PULUMI_BACKEND_URL"] == f"file://{tmp_path}/state"
+    assert env["PULUMI_BACKEND_URL"] == f"file://{(tmp_path / 'state').as_posix()}"
     monkeypatch.setenv("PULUMI_CONFIG_PASSPHRASE", "s3")
     assert PulumiEngine()._env(tmp_path)["PULUMI_CONFIG_PASSPHRASE"] == "s3"
 

@@ -130,12 +130,15 @@ def doctor(which=shutil.which) -> dict[str, Any]:
     for a in all_adapters():
         missing = [t for t in a.required_tools if not tools.get(t) and not which(t)]
         on_platform = plat in a.platforms
+        usable = [e for e in a.describe()["engines"] if engines.get(e)
+                  and (e != "pulumi" or pulumi_sdk)]
         provs.append({
             "name": a.name,
             "status": a.status,
             "platform_supported": on_platform,
             "missing_tools": missing,
-            "ready": on_platform and not missing and (engines["opentofu"] or engines["terraform"]),
+            "ready_engines": usable if on_platform and not missing else [],
+            "ready": on_platform and not missing and bool(usable),
         })
     return {
         "platform": plat,

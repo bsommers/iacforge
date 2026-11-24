@@ -1,0 +1,55 @@
+# AWS scaffold: VPC, subnet, SG, VM, bucket. Uses ambient AWS credentials/profile.
+# bucket names are globally unique: change assets-example-bucket-1.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: aws-demo
+spec:
+  provider: aws
+  providerConfig:
+    region: us-east-1
+    defaultTags:
+      managed-by: iacforge
+  resources:
+  - name: vpc
+    type: vpc
+    properties:
+      cidr: 10.20.0.0/16
+  - name: pub-a
+    type: subnet
+    properties:
+      vpc: vpc
+      cidr: 10.20.1.0/24
+      availabilityZone: us-east-1a
+      public: true
+  - name: web-sg
+    type: security_group
+    properties:
+      vpc: vpc
+      ingress:
+      - protocol: tcp
+        fromPort: 22
+        cidrs:
+        - 10.0.0.0/8
+      - protocol: tcp
+        fromPort: 80
+        toPort: 80
+  - name: web
+    type: vm
+    properties:
+      subnet: pub-a
+      securityGroups:
+      - web-sg
+      publicIp: true
+      userData: '#!/bin/sh
+
+        echo hi
+
+        '
+      amiLookup:
+        owner: 099720109477
+        namePattern: ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*
+  - name: assets-example-bucket-1
+    type: bucket
+    properties:
+      versioning: true

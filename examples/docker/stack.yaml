@@ -1,0 +1,42 @@
+# nginx on a private network with a named volume. Needs a running Docker daemon.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: docker-demo
+spec:
+  provider: docker
+  resources:
+  - name: net
+    type: network
+    properties:
+      labels:
+        env: dev
+  - name: data
+    type: volume
+    properties:
+      labels:
+        env: dev
+  - name: base
+    type: image
+    properties:
+      name: nginx:1.27-alpine
+      keepLocally: true
+  - name: web
+    type: container
+    properties:
+      imageFrom: base
+      env:
+        B: '2'
+        A: '1'
+      ports:
+      - internal: 80
+        external: 8089
+      volumes:
+      - volume: data
+        containerPath: /data
+      networks:
+      - net
+      restart: unless-stopped
+      labels:
+        app: web
+      memoryMb: 128
