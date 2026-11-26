@@ -1,6 +1,8 @@
 """Pulumi engine: runs the rendered program through the Pulumi Automation API.
 
-* Backend: local file backend ``file://<workdir>/state`` (no Pulumi Cloud account needed).
+* Backend: local file backend ``file://<workdir>/state`` (no Pulumi Cloud account needed), or
+  ``gs://<bucket>/<state key>`` when ``spec.backend.type`` is ``gcs`` (ADR 0005). A remote
+  backend requires a non-empty ``PULUMI_CONFIG_PASSPHRASE`` (``SpecError`` otherwise).
 * Secrets passphrase: env ``PULUMI_CONFIG_PASSPHRASE`` if set, otherwise the empty string
   (fine for local/dev state; set it explicitly if the stack holds real secrets).
 * The program runs in-process with cwd = workdir so relative file paths resolve there.
@@ -18,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from ..adapters.base import tf_id
-from ..errors import EngineError, ToolMissingError
+from ..errors import EngineError, SpecError, ToolMissingError
 from ..render import BoundStack, nest_outputs, run_pulumi_program
 from .base import Engine
 
@@ -52,6 +54,21 @@ def _summary_to_changes(summary: dict[str, int] | None) -> dict[str, int]:
     replace = s.get("replace", 0)
     return {"add": s.get("create", 0) + replace, "change": s.get("update", 0),
             "destroy": s.get("delete", 0) + replace}
+
+
+def backend_url(b: BoundStack, workdir: Path, local_url: str | None = None) -> str:
+    """Pulumi backend URL for a bound stack (ADR 0005)."""
+    if b.backend.type == "gcs":
+        return f"gs://{b.backend.bucket}/{b.state_key}"
+    return local_url or f"file://{(workdir / 'state').as_posix()}"
+
+
+def check_remote_passphrase(b: BoundStack) -> None:
+    if b.backend.type != "local" and not os.environ.get("PULUMI_CONFIG_PASSPHRASE"):
+        raise SpecError("a remote Pulumi backend requires PULUMI_CONFIG_PASSPHRASE to be set "
+                        "and non-empty",
+                        details={"hint": "export PULUMI_CONFIG_PASSPHRASE=<secret> (keep it: "
+                                         "it encrypts the stack's secrets)"})
 
 
 class PulumiEngine(Engine):
@@ -94,7 +111,7 @@ class PulumiEngine(Engine):
         workdir.mkdir(parents=True, exist_ok=True)
         (workdir / "Pulumi.yaml").write_text(
             f"name: {PROJECT}\nruntime: python\ndescription: rendered by iacforge\n"
-            "backend:\n  url: file://./state\n", encoding="utf-8")
+            f"backend:\n  url: {backend_url(b, workdir, 'file://./state')}\n", encoding="utf-8")
         (workdir / "stack.json").write_text(
             json.dumps(b.stack.model_dump(by_alias=True, mode="json"), indent=2, sort_keys=True) + "\n",
             encoding="utf-8")
@@ -105,10 +122,10 @@ class PulumiEngine(Engine):
         return {"files": ["Pulumi.yaml", "__main__.py", "requirements.txt", "stack.json"]}
 
     # ------------------------------------------------------------ stack handle
-    def _env(self, workdir: Path) -> dict[str, str]:
+    def _env(self, workdir: Path, b: BoundStack | None = None) -> dict[str, str]:
         return {
             "PULUMI_CONFIG_PASSPHRASE": os.environ.get("PULUMI_CONFIG_PASSPHRASE", ""),
-            "PULUMI_BACKEND_URL": f"file://{(workdir / 'state').as_posix()}",
+            "PULUMI_BACKEND_URL": backend_url(b, workdir) if b else f"file://{(workdir / 'state').as_posix()}",
             "PULUMI_SKIP_UPDATE_CHECK": "true",
             "PULUMI_AUTOMATION_API_SKIP_VERSION_CHECK": "true",
         }
@@ -117,8 +134,9 @@ class PulumiEngine(Engine):
         """Create/select the stack. Overridable in tests."""
         self.cli()
         auto = self._sdk()
-        (workdir / "state").mkdir(parents=True, exist_ok=True)
-        env = self._env(workdir)
+        if b.backend.type == "local":
+            (workdir / "state").mkdir(parents=True, exist_ok=True)
+        env = self._env(workdir, b)
         settings = auto.ProjectSettings(
             name=PROJECT, runtime="python",
             backend=auto.ProjectBackend(url=env["PULUMI_BACKEND_URL"]))
@@ -130,6 +148,7 @@ class PulumiEngine(Engine):
 
     @contextlib.contextmanager
     def _stack(self, b: BoundStack, workdir: Path) -> Iterator[Any]:
+        check_remote_passphrase(b)
         self.render(b, workdir)
         with _cwd(workdir):
             try:

@@ -2,7 +2,9 @@
 
 Binary selection: env ``IACFORGE_TF_BINARY`` (name or path) wins; otherwise flavor
 ``opentofu`` prefers ``tofu`` then ``terraform``; flavor ``terraform`` the reverse.
-State is the default local backend inside the workdir.
+State is the default local backend inside the workdir, or GCS when ``spec.backend.type`` is
+``gcs`` (ADR 0005): the rendered config carries the backend block and ``init`` runs with
+``-reconfigure``; iacforge never passes ``-migrate-state``.
 """
 
 from __future__ import annotations
@@ -94,7 +96,7 @@ class TerraformEngine(Engine):
         (workdir / MAIN_FILE).write_text(terraform_json(b), encoding="utf-8")
         return {"files": [MAIN_FILE]}
 
-    def _init(self, exe: str, wd: Path) -> str:
+    def _init(self, exe: str, wd: Path, remote: bool = False) -> str:
         """`init`, skipped when the config and lock file are unchanged since the last init."""
         main = wd / MAIN_FILE
         lock = wd / ".terraform.lock.hcl"
@@ -103,7 +105,10 @@ class TerraformEngine(Engine):
         if lock.exists() and stamp.exists() and stamp.read_text().strip() == digest:
             return ""
         # -upgrade when a lock already exists: the config changed, possibly its provider pins.
-        r = self._run(exe, ["init", *COMMON, *(["-upgrade"] if lock.exists() else [])], wd)
+        args = ["init", *COMMON, *(["-upgrade"] if lock.exists() else [])]
+        if remote:
+            args.append("-reconfigure")  # never -migrate-state: no implicit state moves
+        r = self._run(exe, args, wd)
         stamp.parent.mkdir(parents=True, exist_ok=True)
         stamp.write_text(digest)
         return r.stdout
@@ -111,7 +116,7 @@ class TerraformEngine(Engine):
     def _prepare(self, b: BoundStack, workdir: Path) -> tuple[str, Path, str]:
         exe = self.binary()
         self.render(b, workdir)
-        return exe, workdir, self._init(exe, workdir)
+        return exe, workdir, self._init(exe, workdir, b.backend.type != "local")
 
     @staticmethod
     def _count(changes: list[dict[str, Any]]) -> tuple[dict[str, int], list[dict[str, Any]]]:
@@ -169,7 +174,7 @@ class TerraformEngine(Engine):
         exe = self.binary()
         if not (workdir / MAIN_FILE).exists():
             self.render(b, workdir)
-        self._init(exe, workdir)
+        self._init(exe, workdir, b.backend.type != "local")
         return {"outputs": self._stack_outputs(b, exe, workdir)}
 
     @staticmethod

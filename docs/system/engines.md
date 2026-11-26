@@ -79,8 +79,8 @@ Pulumi CLI on `PATH` (`ToolMissingError` otherwise) and the Python SDK (`pip ins
 
 ### Automation API
 
-`_open_stack` creates the workdir `state/` directory, builds `ProjectSettings(name="iacforge",
-runtime="python", backend=file://<workdir>/state)` and calls
+`_open_stack` creates the workdir `state/` directory (local backend only), builds `ProjectSettings(name="iacforge",
+runtime="python", backend=<backend URL>)` and calls
 `create_or_select_stack(stack_name=<stack name>, project_name="iacforge", program=lambda:
 run_pulumi_program(b), opts=LocalWorkspaceOptions(work_dir=workdir, env_vars=...))`. The program is
 run **in-process** with cwd switched to the workdir (so relative paths such as the `local` provider's
@@ -100,7 +100,10 @@ fake stack (`tests/test_engine_pulumi.py`).
 
 ### Backend and secrets
 
-The backend is always a local file backend at `<workdir>/state` (no Pulumi Cloud account). Env set
+The backend is a local file backend at `<workdir>/state` by default (no Pulumi Cloud account), or
+`gs://<bucket>/<state key>` when `spec.backend.type: gcs` (ADR 0005; state key is
+`<prefix>/<stack>/pulumi`). A remote backend requires a non-empty `PULUMI_CONFIG_PASSPHRASE`; the
+engine raises `SpecError` before touching state otherwise. Env set
 for every call: `PULUMI_BACKEND_URL`, `PULUMI_CONFIG_PASSPHRASE` (from the environment, else the
 empty string), `PULUMI_SKIP_UPDATE_CHECK`, `PULUMI_AUTOMATION_API_SKIP_VERSION_CHECK`. Set a real
 `PULUMI_CONFIG_PASSPHRASE` when a stack holds secrets. See [security](security.md).
@@ -111,7 +114,7 @@ empty string), `PULUMI_SKIP_UPDATE_CHECK`, `PULUMI_AUTOMATION_API_SKIP_VERSION_C
 
 | File | Content |
 |---|---|
-| `Pulumi.yaml` | `name: iacforge`, `runtime: python`, `backend.url: file://./state` |
+| `Pulumi.yaml` | `name: iacforge`, `runtime: python`, `backend.url: file://./state` (or the `gs://` URL for a gcs backend) |
 | `stack.json` | the validated spec (`model_dump(by_alias=True, mode="json")`, sorted keys) |
 | `__main__.py` | loads `stack.json`, calls `run_pulumi_program(bind(parse_spec(...), "pulumi"))` |
 | `requirements.txt` | `iacforge`, `pulumi>=3.100`, plus the adapter's `pulumi_packages` |
@@ -129,3 +132,11 @@ empty string), `PULUMI_SKIP_UPDATE_CHECK`, `PULUMI_AUTOMATION_API_SKIP_VERSION_C
    and an engine family constant in `adapters/base.py` plus each adapter's `engines`.
 4. Add an ADR (this extends the contract), a fake-runner test file modelled on
    `tests/test_engine_terraform.py`, and a CI job step.
+
+### Remote state (GCS, ADR 0005)
+
+With `spec.backend.type: gcs`, `render_terraform` adds `terraform.backend.gcs = {bucket, prefix:
+<state key>}` and `TerraformEngine._init` runs `init -reconfigure` (never `-migrate-state`; the
+stamp-based skip is unchanged). Pulumi uses the `gs://` URL described above. The state key is
+`<prefix>/<stack>/<engine>`, so engines never share a state object. Credentials come from ambient
+ADC; the state bucket is created out of band.

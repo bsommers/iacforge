@@ -129,6 +129,8 @@ def render_terraform(b: BoundStack) -> dict[str, Any]:
     a = b.adapter
     ctx = TfContext(stack=b.stack, config=b.config, adapter=a)
     doc: dict[str, Any] = {"terraform": {"required_providers": dict(a.tf_required_providers)}}
+    if b.backend.type == "gcs":
+        doc["terraform"]["backend"] = {"gcs": {"bucket": b.backend.bucket, "prefix": b.state_key}}
     providers = a.tf_provider_blocks(b.config)
     if providers:
         doc["provider"] = providers
