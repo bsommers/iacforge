@@ -186,3 +186,10 @@ class TerraformEngine(Engine):
         if m:
             out["destroy"] = int(m[1])
         return out
+
+    def import_resource(self, b: BoundStack, workdir: Path, resource: str, import_id: str) -> dict[str, Any]:
+        exe, wd, log = self._prepare(b, workdir)
+        res = b.stack.resource(resource)
+        address = f"{b.adapter.tf_types[res.type]}.{tf_id(res.name)}"
+        r = self._run(exe, ["import", *COMMON, address, import_id], wd)
+        return {"address": address, "log": log + r.stdout}

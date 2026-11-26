@@ -203,6 +203,27 @@ def destroy(spec: Any, engine: str | None = None, workdir: str | Path | None = N
     return {**_envelope_base(b, wd), **eng.destroy(b, wd)}
 
 
+def import_resource(spec: Any, resource: str, id: str | None = None, engine: str | None = None,
+                    workdir: str | Path | None = None, confirm: bool = False,
+                    runner: Runner | None = None) -> dict[str, Any]:
+    """Adopt an existing resource into state (ADR 0006), then plan to show remaining drift."""
+    _, b = _bind(spec, engine)
+    res = next((r for r in b.stack.spec.resources if r.name == resource), None)
+    if res is None:
+        raise SpecError(f"resource '{resource}' is not declared in the spec",
+                        details={"declared": [r.name for r in b.stack.spec.resources]})
+    _gate("import", confirm, b)
+    import_id = id or b.adapter.import_id(res, b.props[res.name], b.config)
+    wd = resolve_workdir(spec, b.stack, workdir)
+    eng = get_engine(b.engine, runner=runner)
+    done = eng.import_resource(b, wd, resource, import_id)
+    pl = eng.plan(b, wd)
+    log = (done.get("log", "") or "") + (pl.get("log", "") or "")
+    return {**_envelope_base(b, wd), **pl,
+            "imported": {"resource": resource, "address": done.get("address"), "id": import_id},
+            "log": log}
+
+
 # ----------------------------------------------------------------- scaffolding
 
 STARTERS: dict[str, dict[str, Any]] = {

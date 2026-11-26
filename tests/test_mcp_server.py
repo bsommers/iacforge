@@ -67,3 +67,9 @@ def test_descriptions_warn_agents():
 def test_server_builds():
     pytest.importorskip("mcp")
     assert m.build_server() is not None
+
+
+def test_import_tool_gated_and_documented():
+    r = m.iacforge_import("x: y", "hello")
+    assert not r["ok"] and r["command"] == "import"
+    assert "confirm" in m.iacforge_import.__doc__ and "plan" in m.iacforge_import.__doc__

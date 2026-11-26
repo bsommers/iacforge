@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from ..adapters.base import tf_id
-from ..errors import EngineError, ToolMissingError
+from ..errors import EngineError, ToolMissingError, UnsupportedError
 from ..render import BoundStack, nest_outputs, run_pulumi_program
 from .base import Engine
 
@@ -185,3 +185,15 @@ class PulumiEngine(Engine):
         with self._stack(b, workdir) as st:
             outs = self._call(st.outputs)
         return {"outputs": self._outputs_from(b, outs)}
+
+    def import_resource(self, b: BoundStack, workdir: Path, resource: str, import_id: str) -> dict[str, Any]:
+        res = b.stack.resource(resource)
+        token = b.adapter.pulumi_types.get(res.type)
+        if not token:
+            raise UnsupportedError(
+                f"provider '{b.adapter.name}' defines no pulumi type token for '{res.type}'; "
+                "import via the pulumi engine is unavailable")
+        with self._stack(b, workdir) as st:
+            r = self._call(st.import_resources, resources=[
+                {"type": token, "name": resource, "id": import_id}])
+        return {"address": f"{token}::{resource}", "log": getattr(r, "stdout", "")}

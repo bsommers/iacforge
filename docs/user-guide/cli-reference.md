@@ -30,6 +30,7 @@ Environment: `IACFORGE_OUTPUT=json` has the same effect as `--json` for any comm
 | `outputs [SPEC]` | no | Show outputs of an applied stack. |
 | `apply [SPEC]` | **yes** | Create or update infrastructure. |
 | `destroy [SPEC]` | **yes** | Delete all of the stack's infrastructure. |
+| `import [SPEC] --resource NAME [--id ID]` | **yes** | Adopt an existing resource (declared in the spec) into state, then plan. |
 
 ### Spec commands: `validate`, `render`, `plan`, `outputs`, `apply`, `destroy`
 
@@ -50,6 +51,14 @@ Notes:
 - `apply`/`destroy` without `--yes`: in a terminal you get a prompt (`Continue? [y/N]`); with `--json` or when stdin is not a TTY, they fail with `not_confirmed` (exit 5) and change nothing.
 - `plan` renders, runs `init` (skipped when config and lock file are unchanged) and plans. It does not change infrastructure but does write to the workdir.
 - `render` writes only files: nothing is initialised or run.
+
+### `import`
+
+```
+iacforge import [SPEC] --resource NAME [--id ID] [-y] [--engine E] [--workdir DIR]
+```
+
+Writes state, so it is gated like `apply` (`not_confirmed`, exit 5, without `--yes`). `--id` is the provider's import ID; when omitted the provider derives it (gcp does; others fail with `unsupported` unless you pass `--id`). The JSON data is the `plan` envelope plus `imported` `{resource, address, id}`. Pulumi import needs the provider to define a Pulumi type token.
 
 ### `init`
 
@@ -109,6 +118,7 @@ Failure:
 | `apply` | base keys + `workdir`, `changes`, `outputs` `{resource: {key: value}}`, `log` |
 | `destroy` | base keys + `workdir`, `changes`, `log` |
 | `outputs` | base keys + `workdir`, `outputs` |
+| `import` | `plan` keys + `imported` `{resource, address, id}` |
 
 The base keys are `stack`, `provider`, `engine`, `resources` (and `warnings` when present).
 
@@ -123,7 +133,7 @@ Human output prints a one-line summary instead, plus `warning: ...` lines.
 | 2 | Bad usage or invalid spec (also unknown provider, unsupported engine/resource, unreadable spec file, `init` refusing to overwrite) | `invalid_spec`, `unknown_provider`, `unsupported` |
 | 3 | A required tool is missing (tofu/terraform, pulumi, Pulumi SDK) | `tool_missing` |
 | 4 | The engine ran and failed (provider error, apply failure). `details` carries the command, exit code and the tail of stderr/stdout. | `engine_failed` |
-| 5 | `apply`/`destroy` without confirmation | `not_confirmed` |
+| 5 | `apply`/`destroy`/`import` without confirmation | `not_confirmed` |
 
 argparse usage errors (unknown command or flag) print usage to stderr and exit 2. Ctrl-C exits 2.
 
