@@ -124,6 +124,7 @@ class ProviderAdapter:
     config_model: ClassVar[type[Props]] = EmptyConfig
     resource_models: ClassVar[dict[str, type[Props]]] = {}
     tf_types: ClassVar[dict[str, str]] = {}  # resource type -> terraform resource type
+    pulumi_types: ClassVar[dict[str, str]] = {}  # resource type -> pulumi type token (import, ADR 0006)
     tf_required_providers: ClassVar[dict[str, dict[str, str]]] = {}
     docs_url: ClassVar[str] = ""
     backends: ClassVar[frozenset[str]] = frozenset({"local"})  # spec.backend types (ADR 0005)

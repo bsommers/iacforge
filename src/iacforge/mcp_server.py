@@ -95,9 +95,20 @@ def iacforge_destroy(spec: str, engine: str | None = None, workdir: str | None =
     return _envelope("destroy", lambda: core.destroy(spec, engine, workdir, confirm=confirm))
 
 
+def iacforge_import(spec: str, resource: str, id: str | None = None, engine: str | None = None,
+                    workdir: str | None = None, confirm: bool = False) -> dict[str, Any]:
+    """Adopt an EXISTING real resource into state (it must be declared in the spec). Requires
+    confirm=true. Run iacforge_validate and iacforge_plan first; id is the provider import ID
+    (derived when the provider supports it). Without confirm=true this returns a not_confirmed
+    error and changes nothing. Returns the follow-up plan."""
+    return _envelope("import", lambda: core.import_resource(
+        spec, resource, id, engine, workdir, confirm=confirm))
+
+
 TOOLS: tuple[Callable[..., dict[str, Any]], ...] = (
     iacforge_version, iacforge_providers, iacforge_schema, iacforge_doctor, iacforge_validate,
     iacforge_render, iacforge_plan, iacforge_outputs, iacforge_apply, iacforge_destroy,
+    iacforge_import,
 )
 
 

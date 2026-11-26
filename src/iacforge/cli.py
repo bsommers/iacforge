@@ -66,6 +66,11 @@ def build_parser() -> argparse.ArgumentParser:
         p = sub.add_parser(name, help=hlp)
         _add_spec_args(p)
         p.add_argument("-y", "--yes", action="store_true", help="confirm without prompting (required non-interactively)")
+    p = sub.add_parser("import", help="adopt an existing resource into state")
+    _add_spec_args(p)
+    p.add_argument("--resource", required=True, help="stack resource name to import into")
+    p.add_argument("--id", help="provider import ID (default: derived by the provider when supported)")
+    p.add_argument("-y", "--yes", action="store_true", help="confirm without prompting (required non-interactively)")
     return ap
 
 
@@ -110,6 +115,8 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any]:
     if c in ("apply", "destroy"):
         fn = core.apply if c == "apply" else core.destroy
         return fn(spec, confirm=_confirm(args, c), **kw)
+    if c == "import":
+        return core.import_resource(spec, args.resource, id=args.id, confirm=_confirm(args, c), **kw)
     raise IacForgeError(f"unknown command {c}")
 
 
@@ -139,9 +146,12 @@ def _human(command: str, data: dict[str, Any]) -> str:
               f"resources={len(data['resources'])}"
     elif command in ("render",):
         out = f"rendered to {data['workdir']}: " + ", ".join(data.get("files", []))
-    elif command in ("plan", "apply", "destroy"):
+    elif command in ("plan", "apply", "destroy", "import"):
         ch = data.get("changes", {})
         out = f"{command}: +{ch.get('add', 0)} ~{ch.get('change', 0)} -{ch.get('destroy', 0)}"
+        if command == "import":
+            im = data["imported"]
+            out = f"imported {im['address']} (id {im['id']}); plan: " + out.split(": ", 1)[1]
         if data.get("outputs"):
             out += "\noutputs:\n" + json.dumps(data["outputs"], indent=2, sort_keys=True)
     elif command == "outputs":

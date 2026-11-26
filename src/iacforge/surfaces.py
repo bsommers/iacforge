@@ -27,6 +27,7 @@ OPERATIONS: tuple[Operation, ...] = (
     Operation("outputs", "outputs", "iacforge_outputs"),
     Operation("apply", "apply", "iacforge_apply"),
     Operation("destroy", "destroy", "iacforge_destroy"),
+    Operation("import_resource", "import", "iacforge_import"),
     Operation("init", "init", None,
               "scaffolds a file in the server's cwd; agents write specs directly "
               "(see iacforge_schema), so MCP exposes no file-scaffolding tool"),

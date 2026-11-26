@@ -16,6 +16,8 @@ For agents and code that *provision* infrastructure with iacforge. (To modify ia
 8. `outputs` - read results (ids, addresses) as `{resource: {key: value}}`.
 9. `destroy` with confirmation - only on explicit human intent.
 
+To adopt an existing resource: declare it in the spec, `validate`/`plan`, then `import --resource NAME [--id ID]` with confirmation (human approval; writes state). Read the returned plan before any `apply`.
+
 CLI: `iacforge --json <command> [spec.yaml] [--engine E] [--workdir DIR] [--yes]`. Spec may be `-`
 for stdin. Without `--json` output is human text (set `IACFORGE_OUTPUT=json` to force JSON).
 
@@ -141,7 +143,7 @@ Other clients (Claude Desktop, Cursor, etc.) JSON config:
 If installed in a venv use its absolute path, e.g. `/path/to/.venv/bin/iacforge-mcp`.
 Tools (one per operation): `iacforge_version`, `iacforge_providers`, `iacforge_schema`,
 `iacforge_doctor`, `iacforge_validate`, `iacforge_render`, `iacforge_plan`, `iacforge_outputs`,
-`iacforge_apply`, `iacforge_destroy`. `spec` is a file path or inline YAML/JSON text; apply/destroy
+`iacforge_apply`, `iacforge_destroy`, `iacforge_import`. `spec` is a file path or inline YAML/JSON text; apply/destroy/import
 take `confirm=true`. There is no `init` tool: write the spec directly from `iacforge_schema`.
 Note: file paths and workdir are resolved on the MCP server's host and cwd.
 

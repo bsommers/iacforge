@@ -96,3 +96,67 @@ def test_human_output_and_version(capsys, specfile):
 def test_core_gate_direct(tmp_path):
     with pytest.raises(NotConfirmedError):
         core.apply(SPEC, workdir=tmp_path)
+
+
+# ---- import (ADR 0006)
+
+def _import_runner(calls):
+    def runner(args, cwd, env=None, timeout=None):
+        calls.append(args)
+        if "show" in args:
+            return ProcResult(0, json.dumps({"resource_changes": []}), "")
+        return ProcResult(0, "ok", "")
+    return runner
+
+
+def test_import_gate_exit_5(capsys, specfile, tmp_path):
+    code, out, _ = run(capsys, "--json", "import", str(specfile), "--resource", "hello", "--id", "x",
+                       "--workdir", str(tmp_path / "w"))
+    assert code == 5 and json.loads(out)["error"]["code"] == "not_confirmed"
+
+
+def test_import_unknown_resource(specfile, tmp_path):
+    from iacforge.errors import SpecError
+    with pytest.raises(SpecError):
+        core.import_resource(str(specfile), "nope", id="x", confirm=True, workdir=tmp_path / "w")
+
+
+def test_import_derived_id_unsupported(specfile, tmp_path):
+    from iacforge.errors import UnsupportedError
+    with pytest.raises(UnsupportedError):
+        core.import_resource(str(specfile), "hello", confirm=True, workdir=tmp_path / "w")
+
+
+def test_import_explicit_id_terraform_argv(specfile, tmp_path, monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda n: "/bin/tofu")
+    calls: list = []
+    d = core.import_resource(str(specfile), "hello", id="abc", confirm=True,
+                             workdir=tmp_path / "w", runner=_import_runner(calls))
+    imp = next(c for c in calls if "import" in c)
+    assert imp[0] == "/bin/tofu" and imp[1:4] == ["import", "-input=false", "-no-color"]
+    assert imp[4].endswith(".hello") and imp[5] == "abc"
+    assert d["imported"] == {"resource": "hello", "address": imp[4], "id": "abc"}
+    assert d["changes"] == {"add": 0, "change": 0, "destroy": 0}
+
+
+def test_import_derived_id_via_adapter(specfile, tmp_path, monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda n: "/bin/tofu")
+    from iacforge.adapters import get_adapter
+    monkeypatch.setattr(type(get_adapter("local")), "import_id",
+                        lambda self, res, props, config: "derived-1")
+    d = core.import_resource(str(specfile), "hello", confirm=True, workdir=tmp_path / "w",
+                             runner=_import_runner([]))
+    assert d["imported"]["id"] == "derived-1"
+
+
+def test_import_cli_json_and_human(capsys, specfile, tmp_path, monkeypatch):
+    from iacforge.engines import get_engine
+    monkeypatch.setattr("shutil.which", lambda n: "/bin/tofu")
+    monkeypatch.setattr(core, "get_engine", lambda name, runner=None: get_engine(name, runner=_import_runner([])))
+    code, out, _ = run(capsys, "--json", "import", str(specfile), "--resource", "hello", "--id", "abc",
+                       "-y", "--workdir", str(tmp_path / "w"))
+    env = json.loads(out)
+    assert code == 0 and env["command"] == "import" and env["data"]["imported"]["id"] == "abc"
+    code, out, _ = run(capsys, "import", str(specfile), "--resource", "hello", "--id", "abc",
+                       "-y", "--workdir", str(tmp_path / "w2"))
+    assert out.startswith("imported ") and "plan: +0 ~0 -0" in out
