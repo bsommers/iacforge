@@ -7,7 +7,7 @@
 | Host platforms | darwin, linux, windows |
 | Engines | opentofu, terraform, pulumi |
 | Host tools | none (engine only) |
-| Resource types | `artifact_registry`, `bucket`, `cloud_run_service`, `cloud_sql`, `firewall`, `gke_autopilot`, `iam_binding`, `network`, `secret`, `service_account`, `subnet`, `vm` |
+| Resource types | `artifact_registry`, `bucket`, `cloud_run_service`, `cloud_sql`, `firewall`, `gke_autopilot`, `iam_binding`, `bucket_iam_binding`, `secret_iam_binding`, `registry_iam_binding`, `network`, `secret`, `service_account`, `subnet`, `vm` |
 | Upstream docs | <https://registry.terraform.io/providers/hashicorp/google/latest/docs> |
 
 Google Cloud: VPC networks, subnets, firewalls, Compute Engine VMs, Cloud Storage buckets, service accounts, and (v0.2) Artifact Registry, Secret Manager, Cloud Run, GKE Autopilot, Cloud SQL and IAM bindings (`hashicorp/google ~> 6.0`; `pulumi-gcp` for Pulumi). **Status: beta**; promotion to stable is the v0.2 goal (see the [roadmap](../../ROADMAP.md)). The v0.2 resource types, remote state and import are in progress; see [gcp-plan.md](../../system/gcp-plan.md).
@@ -138,21 +138,29 @@ Terraform/OpenTofu type: `google_sql_database_instance`, plus a `google_sql_data
 | `backups` | Backup settings. |
 | `databases` | List of database names. |
 | `passwordSecret` | Name of a `secret` resource. Passwords are never accepted in the spec; prefer IAM database authentication. |
+| `userName` | Database user created with the `passwordSecret` password (default `app`). |
 | `deletionProtection` | Default `true`; set `false` and apply before `destroy`. |
 
 Outputs: `id`, `connection_name`, `private_ip`
 
-### `iam_binding`
+### `iam_binding`, `bucket_iam_binding`, `secret_iam_binding`, `registry_iam_binding`
 
-Terraform/OpenTofu type: `google_project_iam_member` or the matching `google_*_iam_member`.
+One type per scope, because each maps to a different Terraform resource:
+
+| type | Terraform/OpenTofu type | Scope property |
+|---|---|---|
+| `iam_binding` | `google_project_iam_member` | none (project) |
+| `bucket_iam_binding` | `google_storage_bucket_iam_member` | `bucket`: a `bucket` resource |
+| `secret_iam_binding` | `google_secret_manager_secret_iam_member` | `secret`: a `secret` resource |
+| `registry_iam_binding` | `google_artifact_registry_repository_iam_member` | `registry`: an `artifact_registry` resource |
 
 | Property | Description |
 |---|---|
 | `role` | Role to grant, e.g. `roles/run.invoker`. |
 | `member` | A literal like `user:me@example.com`, or the name of a `service_account` resource. |
-| `scope` | Project (default) or the name of a bucket / secret / artifact registry resource. |
 
-Outputs: `id`
+Outputs: `id`. `import_id` is derived only for `iam_binding` with a literal member; pass `--id`
+for the scoped types and for service-account members.
 
 ### `bucket`
 
@@ -262,7 +270,9 @@ Outputs: `external_ip`, `id`, `internal_ip`, `self_link`
 - `cloud_run_service`: `allowUnauthenticated: false`, ingress limited to internal and load balancer traffic.
 - `gke_autopilot`, `cloud_sql`: `deletionProtection: true`. `destroy` fails until you set it to `false` and apply that change.
 - `gke_autopilot`: `privateNodes: true`.
-- Secrets are references only. `secret` has no value field, `secretEnv` and `passwordSecret` point at `secret` resources, and the spec and state never hold secret material.
+- Secrets are references only. `secret` has no value field, `secretEnv` and `passwordSecret` point at `secret` resources, and the spec never holds secret material. Exception: with `passwordSecret`, `cloud_sql` reads the
+  secret's latest version to create a `google_sql_user`, so that password is in state (protect the
+  state bucket; prefer IAM database authentication).
 - References (`network`, `subnet`, `service_account`, `secret`, `artifact_registry`) become implicit dependencies and are type-checked.
 
 ## Related

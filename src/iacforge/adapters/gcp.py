@@ -343,6 +343,24 @@ class GcpAdapter(ProviderAdapter):
         "cloud_sql": "google_sql_database_instance",
         "gke_autopilot": "google_container_cluster",
     }
+    # pulumi type tokens, used by `iacforge import` under the pulumi engine (ADR 0006)
+    pulumi_types = {
+        "network": "gcp:compute/network:Network",
+        "subnet": "gcp:compute/subnetwork:Subnetwork",
+        "firewall": "gcp:compute/firewall:Firewall",
+        "vm": "gcp:compute/instance:Instance",
+        "bucket": "gcp:storage/bucket:Bucket",
+        "service_account": "gcp:serviceaccount/account:Account",
+        "artifact_registry": "gcp:artifactregistry/repository:Repository",
+        "secret": "gcp:secretmanager/secret:Secret",
+        "iam_binding": "gcp:projects/iAMMember:IAMMember",
+        "bucket_iam_binding": "gcp:storage/bucketIAMMember:BucketIAMMember",
+        "secret_iam_binding": "gcp:secretmanager/secretIamMember:SecretIamMember",
+        "registry_iam_binding": "gcp:artifactregistry/repositoryIamMember:RepositoryIamMember",
+        "cloud_run_service": "gcp:cloudrunv2/service:Service",
+        "cloud_sql": "gcp:sql/databaseInstance:DatabaseInstance",
+        "gke_autopilot": "gcp:container/cluster:Cluster",
+    }
     tf_required_providers = {"google": {"source": "hashicorp/google", "version": "~> 6.0"}}
     docs_url = "https://registry.terraform.io/providers/hashicorp/google/latest/docs"
 

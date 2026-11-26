@@ -42,8 +42,8 @@ spec:
       maxInstances: 2
       allowUnauthenticated: false
   - name: runner-reads-secret
-    type: iam_binding
+    type: secret_iam_binding
     properties:
       role: roles/secretmanager.secretAccessor
       member: runner
-      scope: api-key
+      secret: api-key

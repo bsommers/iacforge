@@ -1,4 +1,4 @@
-# Checkpoint (2026-11-24)
+# Checkpoint (2026-11-25)
 
 Goal (user, verbatim intent): build Pulumi + Terraform/OpenTofu IaC tool usable by humans,
 AI agents and code; local providers on Linux/macOS/Windows first, AWS/GCP scaffolding, GCP
@@ -19,13 +19,12 @@ State:
 
 Dead ends: Pulumi CLI install (curl|sh) denied by permission classifier; pulumi live tests skip.
 
-Next: v0.2 GCP first-class (docs/system/gcp-plan.md, ROADMAP v0.2). User has not yet said "go".
-1. Write ADR 0005 for `spec.backend` (local | gcs) — contract change shared by items 2-3.
-2. Then parallel agents (register on tracker; explicit model per CLAUDE.md):
-   resources (cloud_run_service, gke_autopilot, cloud_sql, artifact_registry, secret, iam_binding
-   in adapters/gcp.py, both engines), GCS backend (spec/render/engines), `iacforge import`
-   (CLI+API+MCP, surface parity), docs/examples.
-3. Integrate, full test + ruff, push, confirm CI green, promote gcp to stable once live e2e exists.
+v0.2 IN PROGRESS (user said "go" 2026-11-25):
+- Contracts committed locally at 3c32e27 (not pushed): ADR 0005 spec.backend, ADR 0006 import,
+  spec.Backend model, ProviderAdapter.backends/import_id, Engine.import_resource stub, gcp backends.
+- 4 sonnet agents running in git worktrees (on tracker): gcp-resources (adapters/gcp.py),
+  gcs-backend (render.py + engines state), import-op (core/cli/mcp/surfaces + engine import tail),
+  v02-docs (docs + examples/gcp). Each commits on its own worktree branch.
+- Next: merge the 4 branches into main, reconcile examples vs real property names, regen schema
+  (scripts/gen_schema.py), full pytest + ruff, push, check CI, mark v02-integrate done on tracker.
 Blocked on user: sandbox GCP project + Workload Identity Federation for live e2e CI job.
-Commits/pushes for v0.2 were part of the original autonomous goal; outward-facing approvals
-otherwise treated as expired after compaction.

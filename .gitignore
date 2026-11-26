@@ -13,3 +13,4 @@ build/
 .terraform.lock.hcl
 .tracker/
 out/
+.claude/worktrees/

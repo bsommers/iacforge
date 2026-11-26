@@ -35,7 +35,7 @@ them). Terraform types are the `hashicorp/google` resources.
 | `cloud_run_service` | `google_cloud_run_v2_service` | `image`, `port`, `env`, `secretEnv` (name -> `secret` resource), `serviceAccount`, `minInstances`, `maxInstances`, `cpu`, `memory`, `ingress`, `allowUnauthenticated`, `vpcConnector` | `id`, `uri` |
 | `gke_autopilot` | `google_container_cluster` (`enable_autopilot = true`) | `network`, `subnet`, `releaseChannel`, `privateNodes`, `masterCidr`, `deletionProtection` | `id`, `endpoint`, `name` |
 | `cloud_sql` | `google_sql_database_instance` (+ `google_sql_database`, helper block `<id>_db`) | `engine` (POSTGRES_16, MYSQL_8_0), `tier`, `diskGb`, `network` (private IP), `availability`, `backups`, `databases`, `deletionProtection` | `id`, `connection_name`, `private_ip` |
-| `iam_binding` | `google_project_iam_member` / `google_*_iam_member` | `role`, `member` (a literal `user:...` or a `service_account` resource), `scope` (project or a bucket/secret/registry resource) | `id` |
+| `iam_binding` | `google_project_iam_member` (+ `bucket_iam_binding`, `secret_iam_binding`, `registry_iam_binding` types for the scoped `google_*_iam_member`s) | `role`, `member` (a literal `user:...` or a `service_account` resource); scoped types add `bucket` / `secret` / `registry` | `id` |
 
 Design rules specific to these:
 
