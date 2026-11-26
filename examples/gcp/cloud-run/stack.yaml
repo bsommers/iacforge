@@ -1,0 +1,49 @@
+# Artifact Registry + Secret Manager secret + service account + Cloud Run + IAM. Set providerConfig.project.
+# Needs run, artifactregistry, secretmanager and iam APIs (or set enableApis: true). Uses ADC.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: cloud-run-demo
+spec:
+  provider: gcp
+  providerConfig:
+    project: my-project
+    region: us-central1
+    enableApis: true
+    labels:
+      managed-by: iacforge
+  resources:
+  - name: images
+    type: artifact_registry
+    properties:
+      format: DOCKER
+      location: us-central1
+      description: App images
+  - name: api-key
+    type: secret
+    properties:
+      replication: automatic
+  - name: runner
+    type: service_account
+    properties:
+      accountId: cloud-run-runner
+      displayName: Cloud Run runner
+  - name: app
+    type: cloud_run_service
+    properties:
+      image: us-docker.pkg.dev/cloudrun/container/hello
+      port: 8080
+      serviceAccount: runner
+      env:
+        LOG_LEVEL: info
+      secretEnv:
+        API_KEY: api-key
+      minInstances: 0
+      maxInstances: 2
+      allowUnauthenticated: false
+  - name: runner-reads-secret
+    type: iam_binding
+    properties:
+      role: roles/secretmanager.secretAccessor
+      member: runner
+      scope: api-key

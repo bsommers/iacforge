@@ -5,6 +5,7 @@ Provider-neutral infrastructure provisioning for humans, AI agents and code. Wri
 - **One spec, many targets:** local files, Docker, libvirt/KVM, Hyper-V, Multipass, GCP (beta) and AWS (scaffold).
 - **One spec, many engines:** OpenTofu (default), Terraform or Pulumi, switchable per run. `iacforge render` lets you eject the generated project at any time.
 - **Three uniform surfaces:** a CLI with a stable `--json` envelope and exit codes, a Python API (`iacforge.core`), and an MCP server (`iacforge-mcp`) for AI agents.
+- **GCP (v0.2, in progress):** Cloud Run, GKE Autopilot, Cloud SQL, Artifact Registry, Secret Manager (references only) and IAM bindings; GCS remote state via `spec.backend`; `iacforge import` to adopt existing resources.
 - **Safe by default:** strict validation (unknown keys are errors), no credentials in specs, and `apply`/`destroy` refuse to run without explicit confirmation.
 
 ## Feature matrix
@@ -15,7 +16,7 @@ Generated from `iacforge providers --json`.
 |---|---|---|---|---|---|
 | [`aws`](docs/user-guide/providers/aws.md) | scaffold | darwin, linux, windows | opentofu, terraform, pulumi | bucket, security_group, subnet, vm, vpc | - |
 | [`docker`](docs/user-guide/providers/docker.md) | stable | darwin, linux, windows | opentofu, terraform, pulumi | container, image, network, volume | docker |
-| [`gcp`](docs/user-guide/providers/gcp.md) | beta | darwin, linux, windows | opentofu, terraform, pulumi | bucket, firewall, network, service_account, subnet, vm | - |
+| [`gcp`](docs/user-guide/providers/gcp.md) | beta | darwin, linux, windows | opentofu, terraform, pulumi | artifact_registry, bucket, cloud_run_service, cloud_sql, firewall, gke_autopilot, iam_binding, network, secret, service_account, subnet, vm | - |
 | [`hyperv`](docs/user-guide/providers/hyperv.md) | beta | windows | opentofu, terraform | switch, vhd, vm | powershell |
 | [`libvirt`](docs/user-guide/providers/libvirt.md) | beta | linux | opentofu, terraform, pulumi | network, pool, vm, volume | virsh, qemu-img |
 | [`local`](docs/user-guide/providers/local.md) | stable | darwin, linux, windows | opentofu, terraform, pulumi | file | - |
@@ -95,7 +96,7 @@ core.apply("stack.yaml", confirm=True)
 
 ## Documentation
 
-- User guide: [index](docs/user-guide/index.md), [installation](docs/user-guide/installation.md), [quickstart](docs/user-guide/quickstart.md), [stack spec](docs/user-guide/stack-spec.md), [CLI reference](docs/user-guide/cli-reference.md), [engines](docs/user-guide/engines.md), [MCP](docs/user-guide/mcp.md), [troubleshooting](docs/user-guide/troubleshooting.md), [FAQ](docs/user-guide/faq.md)
+- User guide: [index](docs/user-guide/index.md), [installation](docs/user-guide/installation.md), [quickstart](docs/user-guide/quickstart.md), [stack spec](docs/user-guide/stack-spec.md), [CLI reference](docs/user-guide/cli-reference.md), [state backends](docs/user-guide/state-backends.md), [import](docs/user-guide/import.md), [engines](docs/user-guide/engines.md), [MCP](docs/user-guide/mcp.md), [troubleshooting](docs/user-guide/troubleshooting.md), [FAQ](docs/user-guide/faq.md)
 - Providers: [local](docs/user-guide/providers/local.md), [docker](docs/user-guide/providers/docker.md), [libvirt](docs/user-guide/providers/libvirt.md), [hyperv](docs/user-guide/providers/hyperv.md), [multipass](docs/user-guide/providers/multipass.md), [gcp](docs/user-guide/providers/gcp.md), [aws](docs/user-guide/providers/aws.md)
 - Examples: [`examples/`](examples/), one runnable stack per provider
 - Architecture: [docs/architecture.md](docs/architecture.md), [docs/system/](docs/system/contracts.md)

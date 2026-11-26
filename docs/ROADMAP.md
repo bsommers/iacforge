@@ -11,13 +11,17 @@ Status key: done · next · planned · idea
 - done: surfaces: CLI with JSON envelope, Python API, MCP server for AI agents
 - done: CI on Linux/macOS/Windows
 
-## v0.2 (next): GCP first-class
+## v0.2 (in progress): GCP first-class
+- in progress: GCP resources: `artifact_registry`, `secret` (reference only, never values),
+  `cloud_run_service`, `gke_autopilot`, `cloud_sql`, `iam_binding`; `providerConfig.enableApis`
+  ([gcp-plan.md](system/gcp-plan.md), [provider page](user-guide/providers/gcp.md))
+- in progress: remote state: `spec.backend` with GCS for Terraform/OpenTofu and `gs://` for Pulumi
+  ([ADR 0005](adr/0005-spec-backend.md), [guide](user-guide/state-backends.md))
+- in progress: `iacforge import` for adopting existing resources
+  ([ADR 0006](adr/0006-import-operation.md), [guide](user-guide/import.md))
 - next: GCP live end-to-end tests in a sandbox project (opt-in CI job using Workload
   Identity Federation, no long-lived keys)
-- next: GCP resources: Cloud Run service, GKE Autopilot cluster, Cloud SQL, Artifact
-  Registry, Secret Manager secret (reference only, never values), IAM bindings
-- next: remote state: GCS backend for Terraform, `gs://` backend for Pulumi
-- next: `iacforge import` for adopting existing GCP resources
+- next: promote `gcp` from beta to stable (criteria in gcp-plan.md section 5)
 
 ## v0.3: hardening
 - planned: drift detection command (`iacforge drift`)

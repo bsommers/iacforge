@@ -103,7 +103,7 @@ Consequences:
 - **Relative paths** in resources (such as the `local` provider's `path`) resolve inside the workdir.
 - Add `.iacforge/` to `.gitignore`: it contains state, which can include secrets.
 - Run `destroy` before deleting a workdir, otherwise you lose track of what exists.
-- Remote state backends are not available yet (planned for GCP, see the roadmap).
+- Remote state: `spec.backend: {type: gcs, ...}` (gcp provider) keeps state in a GCS bucket instead; see [state backends](state-backends.md).
 
 `apply` and `destroy` re-render the config each time, so editing `stack.yaml` and re-applying updates the stack.
 

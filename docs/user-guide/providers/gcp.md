@@ -7,10 +7,10 @@
 | Host platforms | darwin, linux, windows |
 | Engines | opentofu, terraform, pulumi |
 | Host tools | none (engine only) |
-| Resource types | `bucket`, `firewall`, `network`, `service_account`, `subnet`, `vm` |
+| Resource types | `artifact_registry`, `bucket`, `cloud_run_service`, `cloud_sql`, `firewall`, `gke_autopilot`, `iam_binding`, `network`, `secret`, `service_account`, `subnet`, `vm` |
 | Upstream docs | <https://registry.terraform.io/providers/hashicorp/google/latest/docs> |
 
-Google Cloud: VPC networks, subnets, firewalls, Compute Engine VMs, Cloud Storage buckets and service accounts (`hashicorp/google ~> 6.0`; `pulumi-gcp` for Pulumi). **Status: beta**; the next main development goal (see the roadmap).
+Google Cloud: VPC networks, subnets, firewalls, Compute Engine VMs, Cloud Storage buckets, service accounts, and (v0.2) Artifact Registry, Secret Manager, Cloud Run, GKE Autopilot, Cloud SQL and IAM bindings (`hashicorp/google ~> 6.0`; `pulumi-gcp` for Pulumi). **Status: beta**; promotion to stable is the v0.2 goal (see the [roadmap](../../ROADMAP.md)). The v0.2 resource types, remote state and import are in progress; see [gcp-plan.md](../../system/gcp-plan.md).
 
 - Platforms: Linux, macOS, Windows. Engines: OpenTofu, Terraform, Pulumi.
 - Host tools: none required by iacforge itself; install the `gcloud` CLI to authenticate.
@@ -18,6 +18,36 @@ Google Cloud: VPC networks, subnets, firewalls, Compute Engine VMs, Cloud Storag
   `gcloud auth application-default login` for a workstation, `GOOGLE_APPLICATION_CREDENTIALS` pointing to a key file for automation, or workload identity on GCP/CI. `providerConfig.project` is the only required setting.
 - References: `subnet.network`, `firewall.network`, `vm.subnet`, `vm.network`, `vm.serviceAccount` name other stack resources and become implicit dependencies; iacforge checks the referenced resource has the right type.
 - Planning and applying creates billable resources. Use `iacforge plan` first and `iacforge destroy` when done.
+
+## Prerequisites
+
+1. A GCP project with billing enabled, and `gcloud` installed.
+2. Application Default Credentials: `gcloud auth application-default login` (workstation), `GOOGLE_APPLICATION_CREDENTIALS` (automation), or workload identity (CI, GCE, GKE). Credentials never go in the spec.
+3. The Google APIs for the resources you use must be enabled in the project, either once by hand:
+
+   ```sh
+   gcloud services enable compute.googleapis.com storage.googleapis.com iam.googleapis.com \
+     artifactregistry.googleapis.com secretmanager.googleapis.com run.googleapis.com \
+     container.googleapis.com sqladmin.googleapis.com servicenetworking.googleapis.com \
+     cloudresourcemanager.googleapis.com --project my-project
+   ```
+
+   or by setting `providerConfig.enableApis: true` (see below).
+4. IAM roles for the identity running iacforge (grant only what the stack needs):
+
+| Resource types | Roles |
+|---|---|
+| `network`, `subnet`, `firewall`, `vm` | `roles/compute.admin` (add `roles/iam.serviceAccountUser` to attach a service account to a VM) |
+| `bucket` | `roles/storage.admin` |
+| `service_account` | `roles/iam.serviceAccountAdmin` |
+| `artifact_registry` | `roles/artifactregistry.admin` |
+| `secret` | `roles/secretmanager.admin` |
+| `cloud_run_service` | `roles/run.admin`, `roles/iam.serviceAccountUser` |
+| `gke_autopilot` | `roles/container.admin` |
+| `cloud_sql` | `roles/cloudsql.admin` (private IP also needs `roles/servicenetworking.networksAdmin`) |
+| `iam_binding` | `roles/resourcemanager.projectIamAdmin` for project scope, or the resource's own admin role |
+| `enableApis: true` | `roles/serviceusage.serviceUsageAdmin` |
+| remote state | `roles/storage.objectUser` on the state bucket (see [state backends](../state-backends.md)) |
 
 Run `iacforge schema gcp --json` for the machine-readable JSON Schema of everything below. Unknown keys are rejected, so typos fail at `validate`.
 
@@ -31,8 +61,98 @@ Property names are camelCase as written in the spec. Defaults shown as "unset" m
 | `region` | string | no | `"us-central1"` |  |
 | `zone` | string | no | `"us-central1-a"` |  |
 | `labels` | map of string | no | `{}` | Default labels merged into labelled resources. |
+| `enableApis` | boolean | no | `false` | Emit `google_project_service` helper blocks (`<name>_api`) for the APIs each resource needs, and make the resource depend on them. Off by default so iacforge does not change project-wide settings unasked. |
 
 ## Resource types
+
+### `artifact_registry`
+
+Terraform/OpenTofu type: `google_artifact_registry_repository`.
+
+| Property | Description |
+|---|---|
+| `format` | `DOCKER`, `PYTHON`, ... |
+| `location` | Registry location. |
+| `description` | Free text. |
+| `labels` | map of string |
+
+Outputs: `id`, `name`, `repository_url`
+
+### `secret`
+
+Terraform/OpenTofu type: `google_secret_manager_secret`. Creates the container only; there is no value field.
+
+| Property | Description |
+|---|---|
+| `replication` | `automatic` or user-managed regions. |
+| `labels` | map of string |
+
+Outputs: `id`, `secret_id`
+
+Add the value out of band so it never enters the spec or state: `printf '%s' "$VALUE" | gcloud secrets versions add my-secret --data-file=-`.
+
+### `cloud_run_service`
+
+Terraform/OpenTofu type: `google_cloud_run_v2_service`.
+
+| Property | Description |
+|---|---|
+| `image` | Container image (often an `artifact_registry` path). |
+| `port` | Container port. |
+| `env` | map of plain environment variables. |
+| `secretEnv` | map of env var name -> name of a `secret` resource; rendered as a secret key reference. |
+| `serviceAccount` | Name of a stack `service_account` resource. |
+| `minInstances`, `maxInstances` | Scaling bounds. |
+| `cpu`, `memory` | Resource limits. |
+| `ingress` | Default: internal and load balancer only. |
+| `allowUnauthenticated` | Default `false`. |
+| `vpcConnector` | VPC access connector. |
+
+Outputs: `id`, `uri`
+
+### `gke_autopilot`
+
+Terraform/OpenTofu type: `google_container_cluster` with `enable_autopilot = true`.
+
+| Property | Description |
+|---|---|
+| `network`, `subnet` | Names of stack `network` / `subnet` resources. |
+| `releaseChannel` | GKE release channel. |
+| `privateNodes` | Default `true`. |
+| `masterCidr` | Control-plane CIDR for private clusters. |
+| `deletionProtection` | Default `true`; set `false` and apply before `destroy`. |
+
+Outputs: `id`, `endpoint`, `name`
+
+### `cloud_sql`
+
+Terraform/OpenTofu type: `google_sql_database_instance`, plus a `google_sql_database` helper block `<name>_db`.
+
+| Property | Description |
+|---|---|
+| `engine` | `POSTGRES_16`, `MYSQL_8_0`, ... |
+| `tier` | Machine tier. |
+| `diskGb` | Disk size. |
+| `network` | Name of a stack `network` resource (private IP). |
+| `availability` | Zonal or regional. |
+| `backups` | Backup settings. |
+| `databases` | List of database names. |
+| `passwordSecret` | Name of a `secret` resource. Passwords are never accepted in the spec; prefer IAM database authentication. |
+| `deletionProtection` | Default `true`; set `false` and apply before `destroy`. |
+
+Outputs: `id`, `connection_name`, `private_ip`
+
+### `iam_binding`
+
+Terraform/OpenTofu type: `google_project_iam_member` or the matching `google_*_iam_member`.
+
+| Property | Description |
+|---|---|
+| `role` | Role to grant, e.g. `roles/run.invoker`. |
+| `member` | A literal like `user:me@example.com`, or the name of a `service_account` resource. |
+| `scope` | Project (default) or the name of a bucket / secret / artifact registry resource. |
+
+Outputs: `id`
 
 ### `bucket`
 
@@ -137,6 +257,19 @@ Terraform/OpenTofu type: `google_compute_instance`.
 Outputs: `external_ip`, `id`, `internal_ip`, `self_link`
 
 
+## Safe defaults for the v0.2 types
+
+- `cloud_run_service`: `allowUnauthenticated: false`, ingress limited to internal and load balancer traffic.
+- `gke_autopilot`, `cloud_sql`: `deletionProtection: true`. `destroy` fails until you set it to `false` and apply that change.
+- `gke_autopilot`: `privateNodes: true`.
+- Secrets are references only. `secret` has no value field, `secretEnv` and `passwordSecret` point at `secret` resources, and the spec and state never hold secret material.
+- References (`network`, `subnet`, `service_account`, `secret`, `artifact_registry`) become implicit dependencies and are type-checked.
+
+## Related
+
+- [State backends](../state-backends.md): keep state in a GCS bucket.
+- [Importing existing resources](../import.md): adopt resources that already exist.
+
 ## Validation rules
 
 - `vm` needs exactly one of `subnet` / `network`; at most one of `preemptible` / `spot`; at most one of `serviceAccount` / `serviceAccountEmail`.
@@ -150,6 +283,8 @@ Outputs: `external_ip`, `id`, `internal_ip`, `self_link`
 Outputs listed under each resource type are returned by `apply` and `outputs` as `{resource-name: {key: value}}`, for example `iacforge outputs` prints `{"web": {"id": "...", "name": "web"}}`.
 
 ## Example
+
+Also: [`examples/gcp/cloud-run/`](../../../examples/gcp/cloud-run/stack.yaml) (registry, secret, service account, Cloud Run, IAM) and [`examples/gcp/remote-state/`](../../../examples/gcp/remote-state/stack.yaml) (GCS backend).
 
 See [`examples/gcp/stack.yaml`](../../../examples/gcp/stack.yaml):
 

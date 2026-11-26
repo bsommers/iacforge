@@ -11,3 +11,5 @@ iacforge destroy stack.yaml --yes
 ```
 
 Reference: [docs/user-guide/providers/gcp.md](../../docs/user-guide/providers/gcp.md)
+
+More: [`cloud-run/`](cloud-run/README.md) (registry, secret, Cloud Run, IAM), [`remote-state/`](remote-state/README.md) (GCS backend).

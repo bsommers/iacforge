@@ -9,7 +9,7 @@ called by AI agents. This page lists what it protects, what it does not, and whe
 |---|---|
 | Cloud/host credentials | the ambient environment (ADC, AWS profile, Docker socket), never the spec |
 | Infrastructure | whatever the provider's API reaches |
-| State (may contain secrets) | the workdir: `terraform.tfstate`, Pulumi `state/` |
+| State (may contain secrets) | the workdir (`terraform.tfstate`, Pulumi `state/`) or a GCS bucket (`spec.backend`) |
 | The spec | a file or inline text supplied by a human or an agent: **untrusted input** |
 
 Trust boundaries: (1) spec text -> `core` (validated before use); (2) iacforge -> engine binaries
@@ -52,7 +52,23 @@ passwords, private keys, connection strings). Defaults:
 - Pulumi's passphrase defaults to the empty string unless `PULUMI_CONFIG_PASSPHRASE` is set, so
   its secret encryption is nominal for dev. Set a real passphrase for stacks with secrets;
 - in your own repos, never commit `.iacforge/`; for shared stacks use remote state with access
-  control (planned: GCS, see [gcp-plan.md](gcp-plan.md)).
+  control (next section).
+
+### Remote state (GCS)
+`spec.backend: {type: gcs, bucket, prefix}` ([ADR 0005](../adr/0005-spec-backend.md), user guide:
+[state backends](../user-guide/state-backends.md)) moves state to `gs://<bucket>/<prefix>/<stack>/<engine>`.
+
+- No credentials in `backend`; access is ambient ADC, controlled by IAM on the bucket
+  (`roles/storage.objectUser` for people and CI that apply). Anyone who can read the object can read
+  the secrets in it.
+- iacforge never creates the state bucket. Bootstrap it with versioning, uniform bucket-level
+  access and public access prevention; consider CMEK.
+- Locking: GCS object generation (Terraform/OpenTofu), the `gs://` backend (Pulumi).
+- Pulumi with a remote backend requires a non-empty `PULUMI_CONFIG_PASSPHRASE`; the engine raises
+  `SpecError` before touching state otherwise. This closes the empty-passphrase gap for shared state.
+- Switching backends never migrates state implicitly (`init -reconfigure` only), so a spec edit
+  cannot silently copy or overwrite state.
+- `import` writes state and is gated by `confirm` like `apply`.
 
 The ejected Pulumi project (`render`) contains `stack.json`, a copy of the spec; it holds no
 credentials but may hold sensitive property values (startup scripts, metadata).
@@ -88,7 +104,7 @@ sources like code.
 
 ## Known gaps and hardening ideas
 
-- Pulumi empty-passphrase default (above).
+- Pulumi empty-passphrase default for the local backend (above); remote backends require a passphrase.
 - `doctor` and `plan` run before any policy check; policy hooks (deny public buckets, required
   labels) are roadmapped for v0.3.
 - No spec size limits; a huge inline spec over MCP is processed in memory.

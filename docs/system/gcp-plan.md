@@ -1,7 +1,7 @@
 # GCP first-class: design for v0.2
 
-Status: **proposal**, consistent with [ROADMAP.md](../ROADMAP.md) (v0.2). Nothing below the
-"Current state" section exists yet; each item names the files that will change. Contract changes
+Status: **in progress (v0.2)**, consistent with [ROADMAP.md](../ROADMAP.md). Sections 1, 2 and 4
+are being implemented (see ADR 0005 and 0006); sections 3 and 5 are not started. Each item names the files that change. Contract changes
 get an ADR (0005+).
 
 ## Current state (beta)

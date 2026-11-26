@@ -11,6 +11,8 @@ iacforge turns one provider-neutral YAML stack spec into real infrastructure. It
 ## Reference
 
 - [CLI reference](cli-reference.md): every command, flag, exit code and the `--json` envelope.
+- [State backends](state-backends.md): local vs GCS remote state, bootstrapping the bucket.
+- [Importing existing resources](import.md): adopt resources into a stack's state.
 - [Engines](engines.md): OpenTofu vs Terraform vs Pulumi, binary selection, state, ejecting.
 - [MCP server](mcp.md): using iacforge from Claude Code, Claude Desktop and other MCP clients.
 - Providers: [local](providers/local.md), [docker](providers/docker.md), [libvirt](providers/libvirt.md), [hyperv](providers/hyperv.md), [multipass](providers/multipass.md), [gcp](providers/gcp.md), [aws](providers/aws.md).

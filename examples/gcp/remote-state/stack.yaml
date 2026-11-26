@@ -1,0 +1,30 @@
+# Small network + bucket with state in GCS. Set providerConfig.project and backend.bucket.
+# Create the state bucket first (see README); it is not created by this stack.
+apiVersion: iacforge/v1
+kind: Stack
+metadata:
+  name: remote-state-demo
+spec:
+  provider: gcp
+  providerConfig:
+    project: my-project
+    labels:
+      managed-by: iacforge
+  backend:
+    type: gcs
+    bucket: my-project-iacforge-state
+    prefix: iacforge
+  resources:
+  - name: vpc
+    type: network
+    properties: {}
+  - name: subnet-a
+    type: subnet
+    properties:
+      network: vpc
+      cidr: 10.20.0.0/24
+  - name: data-bucket-example-2
+    type: bucket
+    properties:
+      versioning: true
+      location: US
