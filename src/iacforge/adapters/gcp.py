@@ -149,6 +149,7 @@ class GcpAdapter(ProviderAdapter):
     name = "gcp"
     description = "Google Cloud: VPC networks, subnets, firewalls, Compute Engine VMs, GCS buckets, service accounts."
     status = "beta"
+    backends = frozenset({"local", "gcs"})
     category = "cloud"
     platforms = ALL_PLATFORMS
     engines = frozenset({TF, PULUMI})

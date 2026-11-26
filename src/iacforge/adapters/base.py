@@ -126,6 +126,7 @@ class ProviderAdapter:
     tf_types: ClassVar[dict[str, str]] = {}  # resource type -> terraform resource type
     tf_required_providers: ClassVar[dict[str, dict[str, str]]] = {}
     docs_url: ClassVar[str] = ""
+    backends: ClassVar[frozenset[str]] = frozenset({"local"})  # spec.backend types (ADR 0005)
 
     # ---- validation ----
     def references(self, res: Resource, props: Props) -> list[str]:
@@ -137,6 +138,13 @@ class ProviderAdapter:
     def validate_stack(self, stack: StackSpec, config: Props, props: dict[str, Props]) -> list[str]:
         """Cross-resource checks beyond the pydantic models. Return error strings."""
         return []
+
+    def import_id(self, res: Resource, props: Props, config: Props) -> str:
+        """Provider import ID for an existing resource (ADR 0006). Override per provider."""
+        from ..errors import UnsupportedError
+
+        raise UnsupportedError(
+            f"provider '{self.name}' cannot derive an import id for type '{res.type}'; pass id explicitly")
 
     # ---- terraform engine ----
     def tf_provider_blocks(self, config: Props) -> dict[str, Any]:
@@ -169,6 +177,7 @@ class ProviderAdapter:
             "required_tools": list(cls.required_tools),
             "pulumi_packages": list(cls.pulumi_packages),
             "docs_url": cls.docs_url,
+            "backends": sorted(cls.backends),
         }
 
     @classmethod

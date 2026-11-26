@@ -52,11 +52,33 @@ class Resource(_Model):
     depends_on: list[str] = Field(default_factory=list, alias="dependsOn")
 
 
+class Backend(_Model):
+    """Where state lives (ADR 0005). Omitted == {type: local}."""
+
+    type: Literal["local", "gcs"] = "local"
+    bucket: str | None = Field(default=None, min_length=3, max_length=222,
+                               description="State bucket (gcs only; created out of band).")
+    prefix: str = Field(default="iacforge", pattern=r"^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$",
+                        description="Key prefix; state key is <prefix>/<stack>/<engine>.")
+
+    @model_validator(mode="after")
+    def _check(self) -> Backend:
+        if self.type == "local" and self.bucket is not None:
+            raise ValueError("backend.bucket is only valid for remote backends (type: gcs)")
+        if self.type != "local" and not self.bucket:
+            raise ValueError(f"backend type '{self.type}' requires 'bucket'")
+        return self
+
+    def state_key(self, stack: str, engine: str) -> str:
+        return f"{self.prefix}/{stack}/{engine}"
+
+
 class StackBody(_Model):
     provider: str
     engine: Literal["opentofu", "terraform", "pulumi"] = "opentofu"
     provider_config: dict[str, Any] = Field(default_factory=dict, alias="providerConfig")
     resources: list[Resource] = Field(default_factory=list)
+    backend: Backend = Field(default_factory=Backend)
 
     @model_validator(mode="after")
     def _check_refs(self) -> StackBody:

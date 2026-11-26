@@ -73,3 +73,7 @@ class Engine:
     def outputs(self, b: BoundStack, workdir: Path) -> dict[str, Any]:
         """Returns {"outputs": {resource: {key: value}}}."""
         raise NotImplementedError
+
+    def import_resource(self, b: BoundStack, workdir: Path, resource: str, import_id: str) -> dict[str, Any]:
+        """Adopt an existing resource into state (ADR 0006). Returns {"address": str, "log": str}."""
+        raise NotImplementedError

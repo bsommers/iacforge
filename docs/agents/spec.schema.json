@@ -1,5 +1,44 @@
 {
   "$defs": {
+    "Backend": {
+      "additionalProperties": false,
+      "description": "Where state lives (ADR 0005). Omitted == {type: local}.",
+      "properties": {
+        "bucket": {
+          "anyOf": [
+            {
+              "maxLength": 222,
+              "minLength": 3,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "State bucket (gcs only; created out of band).",
+          "title": "Bucket"
+        },
+        "prefix": {
+          "default": "iacforge",
+          "description": "Key prefix; state key is <prefix>/<stack>/<engine>.",
+          "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$",
+          "title": "Prefix",
+          "type": "string"
+        },
+        "type": {
+          "default": "local",
+          "enum": [
+            "local",
+            "gcs"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "Backend",
+      "type": "object"
+    },
     "Metadata": {
       "additionalProperties": false,
       "properties": {
@@ -60,6 +99,9 @@
     "StackBody": {
       "additionalProperties": false,
       "properties": {
+        "backend": {
+          "$ref": "#/$defs/Backend"
+        },
         "engine": {
           "default": "opentofu",
           "enum": [

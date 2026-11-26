@@ -43,6 +43,14 @@ class BoundStack:
     def engine(self) -> str:
         return self.stack.spec.engine
 
+    @property
+    def backend(self):  # spec.Backend
+        return self.stack.spec.backend
+
+    @property
+    def state_key(self) -> str:
+        return self.backend.state_key(self.stack.name, self.engine)
+
 
 def _errs(e: ValidationError, prefix: str) -> list[dict]:
     return [
@@ -61,6 +69,11 @@ def bind(stack: StackSpec, engine: str | None = None) -> BoundStack:
         raise UnsupportedError(
             f"provider '{adapter.name}' does not support engine '{eng}'",
             details={"supported": adapter.describe()["engines"]},
+        )
+    if stack.spec.backend.type not in adapter.backends:
+        raise UnsupportedError(
+            f"provider '{adapter.name}' does not support backend '{stack.spec.backend.type}'",
+            details={"supported": sorted(adapter.backends)},
         )
     if eng != stack.spec.engine:
         stack = stack.model_copy(update={"spec": stack.spec.model_copy(update={"engine": eng})})
